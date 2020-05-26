@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neuedu.shop.dao.AdminMapper">
+	<sql id="sqlBaseAdmin">
+		select 
+			id,
+			admin_name,
+			admin_password
+			
+		from 
+			t_admin 
+	</sql>
+	<!-- id值对应方法名 -->
+	<insert id="insert" parameterType="Admin">
+		insert into t_admin values(null,#{name},MD5(#{password}))
+	</insert>
+	<update id="update" parameterType="Admin">
+		update t_admin set admin_name=#{name},admin_password=MD5(#{password}) where id=#{id}
+	</update>
+	<delete id="delete" parameterType="int">
+		delete from t_admin where id=#{id}
+	</delete>
+	<resultMap type="Admin" id="resultFindAllAdminMap">
+		<id property="id" column="id" javaType="java.lang.Integer"/>
+		<result property="name" column="admin_name" javaType="java.lang.String"/>
+		<result property="password" column="admin_password" javaType="java.lang.String"/>
+		
+	</resultMap>
+	<select id="findAdminAll" resultMap="resultFindAllAdminMap" >
+		<include refid="sqlBaseAdmin"></include>
+	</select>
+	
+	<resultMap type="Admin" id="resultByIdAdminMap">
+		<id property="id" column="id" javaType="java.lang.Integer"/>
+		<result property="name" column="admin_name" javaType="java.lang.String"/>
+		<result property="password" column="admin_password" javaType="java.lang.String"/>
+		
+	</resultMap>
+	<select id="findByName" resultMap="resultByIdAdminMap" parameterType="String">
+		<include refid="sqlBaseAdmin"></include> where admin_name=#{name}
+	</select>
+	<select id="findById" resultMap="resultByIdAdminMap" parameterType="int">
+		<include refid="sqlBaseAdmin"></include>
+		where
+			id=#{id}
+	</select>
+	
+</mapper>

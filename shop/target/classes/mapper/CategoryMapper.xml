@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neuedu.shop.dao.CategoryMapper">
+	<sql id="baseSQL">
+		select 
+			id,
+			category_name,
+			category_description,
+			category_parentid,
+			leaf,
+			grade
+		from 
+			t_category
+	</sql>
+
+	<!-- <insert id="addRootCategory"  parameterType ="MyConditionVO">
+		insert into t_category values (null,#{category_name},#{category_description},0,1,1)
+	</insert> -->
+	<!-- 根节点 -->
+	<insert id="addRootCategory"  parameterType ="String">
+		insert into t_category values (null,#{param1},#{param2},0,1,1)
+	</insert>
+	
+	
+	<!-- 子节点 -->
+	<!-- 1.找id=parentId 得到grade -->
+	<select id="findByParentId" parameterType="int" resultType="int">
+		select grade from t_category where id=#{pid}
+	</select>
+	<!-- 2.添加子节点 -->
+	<insert id="addChildCategory"  parameterType ="Category">
+		insert into t_category values (null,#{name},#{descr},#{pid},1,#{grade})
+	</insert>
+	<!-- 3.更新父节点 叶子节点改为非叶子节点 -->
+	<update id="updateParentId" parameterType="int">
+		update t_category set leaf=0 where id=#{pid}
+	</update>
+	
+	
+	<select id="findAll" resultMap="findAllCategory">
+		<include refid="baseSQL"></include>
+	</select>
+	<resultMap type="Category" id="findAllCategory">
+		<id property="id" column="id"/>
+		<result property="name" column="category_name"/>
+		<result property="descr" column="category_description"/>
+		<result property="pid" column="category_parentid"/>
+		<result property="leaf" column="leaf"/>
+		<result property="grade" column="grade"/>
+	</resultMap>
+	
+	<!-- 递归查询 -->
+	<select id="findToTree" resultMap="findToTreeMap"> 
+		<!-- 从根级开始查询 -->	
+		<include refid="baseSQL"/> where category_parentid=0
+	</select>
+	<resultMap type="Category" id="findToTreeMap">
+		<id property="id" column="id"/>
+		<result property="name" column="category_name"/>
+		<result property="descr" column="category_description"/>
+		<result property="pid" column="category_parentid"/>
+		<result property="leaf" column="leaf"/>
+		<result property="grade" column="grade"/>
+		<!-- 
+		if (!category.isLeaf()) {
+			// 返回categories，始终是这个容器
+			findToTree(conn, categories, category.getId());
+		} -->
+		<!-- 封装collection时根据当前Category去查找其id，作为下一次的parentId。递归的实现 -->
+		<collection property="children" ofType="Category" column="id" select="selectChildById"/>
+	</resultMap>
+	<!-- 递归查询内容 -->
+	<!-- parameterType参数为：collection中的column="id"的id -->
+	<select id="selectChildById" resultMap="findToTreeMap" parameterType="int">
+		<!-- 等价于：String sql = "select id,category_name,category_description,"
+				+ "category_parentId,leaf,grade from t_category where category_parentId=" + parentId; -->
+		<include refid="baseSQL"/>
+			where category_parentid=#{id};
+	</select>
+	
+	<update id="update" parameterType="Category">
+		update 
+			t_category 
+		set 
+			category_name=#{name},
+			category_description=#{descr} 
+		where 
+			id=#{id}
+	</update>
+	<select id="findThree" resultMap="findAllCategory">
+		<include refid="baseSQL"/>
+		 where grade=3 order by category_name
+	</select>
+	<select id="findById" resultMap="findAllCategory" parameterType="int">
+		<include refid="baseSQL"/>
+		 where id=#{id}
+	</select>
+	<!-- 递归删除 -->
+	<!-- 1.找儿子 -->
+	<select id="select" parameterType="int" resultMap="findChild">
+		<include refid="baseSQL"/>
+		 where category_parentId=#{id}
+	</select>
+	
+	<resultMap type="Category" id="findChild">
+		<id property="id" column="id"/>
+		<result property="name" column="category_name"/>
+		<result property="descr" column="category_description"/>
+		<result property="pid" column="category_parentId"/>
+		<result property="leaf" column="leaf"/>
+		<result property="grade" column="grade"/>
+		<collection property="children2 " ofType="Category" column="id" select="selectChildren"/>
+	</resultMap>
+	<!-- 2.递归删除到叶子为止 -->
+	<delete id="delete" parameterType="int">
+		delete from t_category where id=#{id}
+	</delete>
+	<!-- 3.查该节点的兄弟节点 -->
+	<select id="">
+		select count(*) from t_category where category_parentId=#{pid}
+	</select>
+	<!-- 4.若无兄弟节点，则改父节点的leaf值为1 -->
+	<update id="updateParentLeaf">
+		update t_category set leaf=1 where id=#{pid}
+	</update>
+	
+	<!-- 按关键字查询 -->
+	<select id="fingByKeywords" parameterType="String" resultMap="findAllCategory">
+		<include refid="baseSQL"/>
+		<where>
+			<!-- category_name like '%${_parameter}%' -->
+			category_name like concat('%',#{keyword},'%') or
+			category_description like concat('%',#{keyword},'%')
+		</where>
+	</select>
+	
+</mapper>

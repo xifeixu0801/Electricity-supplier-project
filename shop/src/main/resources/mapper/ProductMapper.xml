@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neuedu.shop.dao.ProductMapper">
+	<sql id="baseSQL">
+		select 
+			p.id pid,
+			product_name pname,
+			product_description pdescr,
+			product_normalprice normalprice,
+			product_memberprice memberprice,
+			product_imgpath imgpath,
+			product_date pdate,
+			product_categoryid pcid,
+			c.id cid,
+			category_name cname,
+			category_description cdescr,
+			category_parentid cpid, 
+			leaf,
+			grade
+		from 
+			t_product p 
+		join 
+			t_category c
+		on
+			p.product_categoryid=c.id
+	</sql>
+
+	
+	
+	<select id="findById" parameterType="Integer" resultMap="findAllProduct">
+		<include refid="baseSQL"/> where p.id=#{id}
+	</select>
+	
+	
+	<resultMap type="Product" id="findAllProduct">
+		<id column="pid" property="id"/>
+		<result column="pname" property="name"/>
+		<result column="pdescr" property="descr"/>
+		<result column="normalprice" property="normalprice"/>
+		<result column="memberprice" property="memberprice"/>
+		<result column="imgpath" property="imgpath"/>
+		<result column="pdate" property="pdate"/>
+		<association property="category" javaType="Category">
+			<id column="cid" property="id"/>
+			<result column="cname" property="name"/>
+			<result column="cdescr" property="descr"/>
+			<result column="cpid" property="pid"/>
+			<result column="leaf" property="leaf"/>
+			<result column="grade" property="grade"/>
+		</association>
+		
+	</resultMap>
+	<select id="findEight" resultMap="findAllProduct">
+		<include refid="baseSQL"/> limit 0,8
+	</select>
+	<select id="findAll" resultMap="findAllProduct">
+		<include refid="baseSQL"></include>
+	</select>
+	
+	<delete id="delete" parameterType="Integer">
+		delete from t_product where id=#{id}
+	</delete>
+	
+	
+	
+	
+	<insert id="insert" parameterType="Product">
+		insert into t_product values
+			(null,#{name},#{descr},#{normalprice},#{memberprice},#{imgpath},now(),#{categoryid})
+	</insert>
+	
+	<update id="update" parameterType="Product">
+		update
+			t_product
+		set
+			product_name=#{name},
+			product_description=#{descr},
+			product_normalprice=#{normalprice},
+			product_memberprice=#{memberprice},
+			product_imgpath=#{imgpath},
+			
+			product_categoryid=#{categoryid}
+		where 
+			id=#{id}
+	</update>
+	
+	<select id="fingByKeywords" parameterType="String" resultMap="findAllProduct">
+		<include refid="baseSQL"/>
+		<where>
+			<!-- p.product_name like '%${_parameter}%' -->
+			p.product_name like concat('%',#{keywords},'%') or
+			p.product_description like concat('%',#{keywords},'%') or
+			c.category_name like concat('%',#{keywords},'%') or
+			c.category_description like concat('%',#{keywords},'%')
+		</where>
+	</select>
+	<select id="lastedProduct" resultMap="findAllProduct">
+		<include refid="baseSQL"/> order by product_date desc limit 0,8
+	</select>
+	
+	<!-- 按类别查找categoryid -->
+	<select id="findByCategoryId" parameterType="Integer" resultMap="findAllProduct">
+		<include refid="baseSQL"/> where p.product_categoryid=#{categoryid}
+	</select>
+	
+	<!-- 复杂查询 -->
+	<select id="ProductCondition" parameterType="ProductConditionVO" resultMap="findAllProduct">
+		<include refid="baseSQL"/>
+		<!-- 动态SQL语句 -->
+		<where>
+			<if test="categoryid != null">
+				p.product_categoryid=#{categoryid}
+			</if>
+			<if test="keywords != null">
+				and
+					(p.product_name like concat('%',#{keywords},'%') or
+					p.product_description like concat('%',#{keywords},'%') or
+					c.category_name like concat('%',#{keywords},'%') or
+					c.category_description like concat('%',#{keywords},'%'))
+			</if>
+			<if test="lownormalprice!=null and highnormalprice!=null">
+				and
+					p.product_normalprice between #{lownormalprice} and #{highnormalprice}
+			</if>	
+			
+			<if test="lowmemberprice!=null and highmemberprice!=null">
+				and
+					p.product_memberprice between #{lowmemberprice} and #{highmemberprice}
+			</if>
+			<if test="startdate!=null and enddate!=null">
+				and
+					p.product_date between #{startdate} and #{enddate}
+			</if>
+			
+		</where>
+	</select>
+	
+</mapper>

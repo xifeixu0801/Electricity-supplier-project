@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.neuedu.shop.dao.CartItemMapper">
+	<sql id="baseSQL">
+		select 
+			ci.id ciid,
+			ci.productid cipid,
+			ci.userid ciuid,
+			ci.pcount,
+			ci.unitprice,
+			ci.cartitem_date cartdate,
+			
+			u.id uid,
+			u.user_name uname,
+			u.user_password upwd,
+			u.user_phone phone,
+			u.user_addr addr,
+			u.user_register_date rdate,
+			u.user_status status,
+			
+			p.id pid,
+			product_name pname,
+			product_description pdescr,
+			product_normalprice normalprice,
+			product_memberprice memberprice,
+			product_imgpath imgpath,
+			product_date pdate,
+			product_categoryid pcid,
+			c.id cid,
+			category_name cname,
+			category_description cdescr,
+			category_parentid cpid, 
+			leaf,
+			grade
+			
+		from 
+			t_cartitem ci
+		join  
+			t_user u 
+		on 
+			ci.userid=u.id
+		join
+			t_product p
+		on 
+			ci.productid=p.id
+		join
+			t_category c
+		on
+			p.product_categoryid=c.id
+			
+	</sql>
+	<insert id="insert" parameterType="CartItem">
+		insert into t_cartitem values(null,#{productid},#{userid},#{pcount},#{unitprice},now())
+	</insert>
+	<resultMap type="CartItem" id="findByUserId">
+		<id column="ciid" property="id"/>
+		<result column="pcount" property="pcount"/>
+		<result column="unitprice" property="unitprice"/>
+		<result column="cartdate" property="itemdate"/>
+		<association property="user" javaType="User">
+			<id property="id" column="uid" javaType="java.lang.Integer"/>
+			<result property="name" column="uname" javaType="java.lang.String"/>
+			<result property="password" column="upwd" javaType="java.lang.String"/>
+			<result property="phone" column="phone" javaType="java.lang.String"/>
+			<result property="addr" column="addr" javaType="java.lang.String"/>
+			<result property="rdate" column="rdate" javaType="java.sql.Timestamp"/>
+			<result property="status" column="status" javaType="java.lang.Integer"/>
+		</association>
+		<association property="product" javaType="Product">
+			<id column="pid" property="id"/>
+			<result column="pname" property="name"/>
+			<result column="pdescr" property="descr"/>
+			<result column="normalprice" property="normalprice"/>
+			<result column="memberprice" property="memberprice"/>
+			<result column="imgpath" property="imgpath"/>
+			<result column="pdate" property="pdate"/>
+			<association property="category" javaType="Category">
+				<id column="cid" property="id"/>
+				<result column="cname" property="name"/>
+				<result column="cdescr" property="descr"/>
+				<result column="cpid" property="pid"/>
+				<result column="leaf" property="leaf"/>
+				<result column="grade" property="grade"/>
+			</association>
+		</association>
+	</resultMap>
+	<select id="findByUserId" parameterType="Integer" resultMap="findByUserId">
+		<include refid="baseSQL"/> where ci.userid=#{userid}
+	</select>
+</mapper>
